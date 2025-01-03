@@ -8,6 +8,8 @@ app = Flask(__name__)
 # Configure OpenAI API
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+port = int(os.environ.get("PORT", 8000))
+
 # Database Initialization
 def init_db():
     conn = sqlite3.connect('resources.db')
@@ -77,5 +79,6 @@ def get_resources():
 if __name__ == "__main__":
     init_db()
     seed_db()
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)
+
 
