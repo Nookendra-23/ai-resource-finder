@@ -12,7 +12,10 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 def init_db():
     conn = sqlite3.connect('resources.db')
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS resources (
+    # Drop the table if it exists
+    cursor.execute('DROP TABLE IF EXISTS resources')
+    # Create the table with the correct schema
+    cursor.execute('''CREATE TABLE resources (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         exam TEXT,
                         language TEXT,
