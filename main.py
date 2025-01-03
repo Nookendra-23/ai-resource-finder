@@ -8,18 +8,6 @@ app = Flask(__name__)
 # Configure OpenAI API
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
-const express = require('express')
-const app = express()
-const port = process.env.PORT || 4000;
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
-
 # Database Initialization
 def init_db():
     conn = sqlite3.connect('resources.db')
