@@ -5,66 +5,38 @@ import os
 
 app = Flask(__name__)
 
-# Configure OpenAI API
+# Configure OpenAI API Key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
-port = int(os.environ.get("PORT", 8000))
-
-# Database Initialization
-def init_db():
+# Database Connection Function
+def get_db_connection():
     conn = sqlite3.connect('resources.db')
-    cursor = conn.cursor()
-    # Drop the table if it exists
-    cursor.execute('DROP TABLE IF EXISTS resources')
-    # Create the table with the correct schema
-    cursor.execute('''CREATE TABLE resources (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        exam TEXT,
-                        language TEXT,
-                        experience_level TEXT,
-                        resource TEXT
-                    )''')
-    conn.commit()
-    conn.close()
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# Seed the database with sample data
-def seed_db():
-    conn = sqlite3.connect('resources.db')
-    cursor = conn.cursor()
-    sample_data = [
-        ('CDS', 'English', 'Beginner', 'https://cds-beginner-english.com'),
-        ('CDS', 'Telugu', 'Beginner', 'https://cds-beginner-telugu.com'),
-        ('CDS', 'English', 'Intermediate', 'https://cds-intermediate-english.com')
-    ]
-    cursor.executemany('''INSERT INTO resources (exam, language, experience_level, resource) VALUES (?, ?, ?, ?)''', sample_data)
-    conn.commit()
-    conn.close()
-
-# Flask Routes
 @app.route('/')
 def home():
     return "Welcome to the AI Resource Finder!"
 
 @app.route('/get-resources', methods=['POST'])
 def get_resources():
-    user_input = request.json
-    exam = user_input.get('exam', '').strip()
-    language = user_input.get('language', '').strip()
-    experience_level = user_input.get('experience_level', '').strip()
+    data = request.json
+    exam = data.get('exam', '').strip()
+    language = data.get('language', '').strip()
+    experience_level = data.get('experience_level', '').strip()
 
-    # Search in the database
-    conn = sqlite3.connect('resources.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''SELECT resource FROM resources WHERE exam = ? AND language = ? AND experience_level = ?''',
+    cursor.execute('''SELECT resource FROM resources 
+                      WHERE exam = ? AND language = ? AND experience_level = ?''',
                    (exam, language, experience_level))
     results = cursor.fetchall()
     conn.close()
 
     if results:
-        resources = [row[0] for row in results]
-        return jsonify({"resources": resources})
+        return jsonify({"resources": [row['resource'] for row in results]})
 
-    # If no results, use OpenAI to generate suggestions
+    # Fallback to OpenAI API
     try:
         response = openai.Completion.create(
             engine="text-davinci-003",
@@ -74,11 +46,8 @@ def get_resources():
         ai_resources = response.choices[0].text.strip().split('\n')
         return jsonify({"resources": ai_resources})
     except Exception as e:
-        return jsonify({"error": "Could not fetch AI-generated resources.", "details": str(e)})
+        return jsonify({"error": "Unable to fetch resources.", "details": str(e)})
 
 if __name__ == "__main__":
-    init_db()
-    seed_db()
-    app.run(host='0.0.0.0', port=port, debug=True)
-
-
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
